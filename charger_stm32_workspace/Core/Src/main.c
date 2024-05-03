@@ -47,6 +47,8 @@ CAN_HandleTypeDef hcan1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
+void Pre_Charge_Sequence(void);
+void Charging_Sequence(void); 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
@@ -96,7 +98,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+      if (HVIL_MCU_IN_Pin == 1)
+      {
+          HAL_GPIO_WritePin(HVIL_MCU_OUT_PORT, HVIL_MCU_OUT_PIN, 1);
+          Pre_Charge_Sequence();
+      }
 
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
@@ -242,6 +248,24 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void  Pre_Charge_Sequence(void)
+{
+  HAL_GPIO_WritePin(MCU_PCC_PORT, MCU_PCC_PIN, 1);
+  for (int delay = 0; delay < 4; delay++)
+  {
+    HAL_GPIO_TogglePin(HV_MCU_LED_PORT, HV_MCU_LED_PIN);
+    HAL_Delay(1000);
+  }
+  HAL_GPIO_WritePin(MCU_PCC_PORT, MCU_PCC_PIN, 0);
+  HAL_GPIO_WritePin(MCU_MC_PORT, MCU_MC_PIN, 1);
+  HAL_GPIO_WritePin(HV_MCU_LED_PORT, HV_MCU_LED_PIN, 1);
+  
+}
+
+void Charging_Sequence(void)
+{
+  
+}
 
 /* USER CODE END 4 */
 
