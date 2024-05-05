@@ -52,9 +52,6 @@ default.size.stdout \
 OBJDUMP_LIST += \
 charger_test.list \
 
-OBJCOPY_BIN += \
-charger_test.bin \
-
 
 # All Target
 all: main-build
@@ -78,17 +75,12 @@ charger_test.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-charger_test.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "charger_test.bin"
-	@echo 'Finished building: $@'
-	@echo ' '
-
 # Other Targets
 clean:
-	-$(RM) charger_test.bin charger_test.elf charger_test.list charger_test.map default.size.stdout
+	-$(RM) charger_test.elf charger_test.list charger_test.map default.size.stdout
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_BIN)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'

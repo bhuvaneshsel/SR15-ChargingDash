@@ -49,6 +49,7 @@ CAN_HandleTypeDef hcan1;
 /* Private function prototypes -----------------------------------------------*/
 void Pre_Charge_Sequence(void);
 void Charging_Sequence(void); 
+void Fan_Control(void);
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
@@ -98,9 +99,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      if (HVIL_MCU_IN_Pin == 1)
+      if (HAL_GPIO_ReadPin(HVIL_MCU_IN_GPIO_Port, HVIL_MCU_IN_Pin))
       {
-          HAL_GPIO_WritePin(HVIL_MCU_OUT_PORT, HVIL_MCU_OUT_PIN, 1);
+          HAL_GPIO_WritePin(GPIOB, HVIL_MCU_OUT_Pin, 1);
           Pre_Charge_Sequence();
       }
 
@@ -250,21 +251,29 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void  Pre_Charge_Sequence(void)
 {
-  HAL_GPIO_WritePin(MCU_PCC_PORT, MCU_PCC_PIN, 1);
+  HAL_GPIO_WritePin(GPIOC, MCU_PCC_Pin, 1);
   for (int delay = 0; delay < 4; delay++)
   {
-    HAL_GPIO_TogglePin(HV_MCU_LED_PORT, HV_MCU_LED_PIN);
+    HAL_GPIO_TogglePin(GPIOB, HV_LED_Pin);
     HAL_Delay(1000);
   }
-  HAL_GPIO_WritePin(MCU_PCC_PORT, MCU_PCC_PIN, 0);
-  HAL_GPIO_WritePin(MCU_MC_PORT, MCU_MC_PIN, 1);
-  HAL_GPIO_WritePin(HV_MCU_LED_PORT, HV_MCU_LED_PIN, 1);
-  
+  HAL_GPIO_WritePin(GPIOC, MCU_PCC_Pin, 0);
+  HAL_GPIO_WritePin(GPIOC, MCU_MC_Pin, 1);
+  HAL_GPIO_WritePin(GPIOB, HV_LED_Pin, 1);
+  Charging_Sequence();
 }
 
 void Charging_Sequence(void)
 {
-  
+  if(HAL_GPIO_ReadPin(BRUSA_EN_IN_GPIO_Port, BRUSA_EN_IN_Pin)) {
+	  HAL_GPIO_WritePin(GPIOB, BRUSA_PON_Pin, 1);
+	  Fan_Control();
+  }
+}
+
+void Fan_Control(void) {
+//	For now just toggle fans until can is fully added
+	HAL_GPIO_TogglePin(GPIOC, FANS_SIG_Pin);
 }
 
 /* USER CODE END 4 */
