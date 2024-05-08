@@ -61,10 +61,10 @@ void Error_Handler(void);
 #define MCU_PCC_GPIO_Port GPIOC
 #define MCU_MC_Pin GPIO_PIN_1
 #define MCU_MC_GPIO_Port GPIOC
+#define BRUSA_PON_SIG_Pin GPIO_PIN_0
+#define BRUSA_PON_SIG_GPIO_Port GPIOB
 #define BRUSA_EN_IN_Pin GPIO_PIN_1
 #define BRUSA_EN_IN_GPIO_Port GPIOB
-#define BRUSA_PON_Pin GPIO_PIN_2
-#define BRUSA_PON_GPIO_Port GPIOB
 #define HVIL_MCU_OUT_Pin GPIO_PIN_12
 #define HVIL_MCU_OUT_GPIO_Port GPIOB
 #define HV_LED_Pin GPIO_PIN_13

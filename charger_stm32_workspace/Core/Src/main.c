@@ -47,14 +47,17 @@ CAN_HandleTypeDef hcan1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-void Pre_Charge_Sequence(void);
-void Charging_Sequence(void); 
-void Fan_Control(void);
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
 /* USER CODE BEGIN PFP */
-
+void setOutputPins(
+		uint8_t BRUSA_PON_SIG_State,
+		uint8_t HVIL_MCU_OUT_State,
+		uint8_t FANS_SIG_State,
+		uint8_t MCU_PCC_State,
+		uint8_t MCU_MC_State,
+		uint8_t HV_LED_State);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -92,23 +95,39 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
-
+  	  int pre_charge_occured = 0;
+  	  setOutputPins(0, 0, 0, 0, 0, 0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      if (HAL_GPIO_ReadPin(HVIL_MCU_IN_GPIO_Port, HVIL_MCU_IN_Pin))
-      {
-          HAL_GPIO_WritePin(GPIOB, HVIL_MCU_OUT_Pin, 1);
-          Pre_Charge_Sequence();
+      if (HAL_GPIO_ReadPin(HVIL_MCU_IN_GPIO_Port, HVIL_MCU_IN_Pin) == 1 && HAL_GPIO_ReadPin(BRUSA_EN_IN_GPIO_Port, BRUSA_EN_IN_Pin) == 1 && pre_charge_occured == 1) {
+    	  // Charge state
+    	  setOutputPins(1, 1, 1, 0, 1, 1);
+      } else if (HAL_GPIO_ReadPin(HVIL_MCU_IN_GPIO_Port, HVIL_MCU_IN_Pin) == 1 && HAL_GPIO_ReadPin(BRUSA_EN_IN_GPIO_Port, BRUSA_EN_IN_Pin) == 0 && pre_charge_occured == 1) {
+    	  // Idle state
+    	  setOutputPins(0, 1, 1, 0, 1, 1);
+      } else if (HAL_GPIO_ReadPin(HVIL_MCU_IN_GPIO_Port, HVIL_MCU_IN_Pin) == 1 && pre_charge_occured == 0) {
+    	  // Pre-charge state
+          setOutputPins(0, 1, 0, 1, 0, 0);
+          for (int delay = 0; delay < 39; delay++)
+          {
+            HAL_GPIO_TogglePin(GPIOB, HV_LED_Pin);
+            HAL_Delay(100);
+          }
+          setOutputPins(0, 1, 1, 0, 1, 1);
+          pre_charge_occured = 1;
+      } else if (HAL_GPIO_ReadPin(HVIL_MCU_IN_GPIO_Port, HVIL_MCU_IN_Pin) == 0) {
+    	  // X state
+    	  setOutputPins(0, 0, 0, 0, 0, 0);
+    	  pre_charge_occured = 0;
       }
-
-    /* USER CODE END WHILE */
-    /* USER CODE BEGIN 3 */
   }
+  /* USER CODE END WHILE */
 
+  /* USER CODE BEGIN 3 */
   /* USER CODE END 3 */
 }
 
@@ -210,7 +229,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, MCU_PCC_Pin|MCU_MC_Pin|FANS_SIG_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, BRUSA_PON_Pin|HVIL_MCU_OUT_Pin|HV_LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, BRUSA_PON_SIG_Pin|HVIL_MCU_OUT_Pin|HV_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : MCU_PCC_Pin MCU_MC_Pin FANS_SIG_Pin */
   GPIO_InitStruct.Pin = MCU_PCC_Pin|MCU_MC_Pin|FANS_SIG_Pin;
@@ -225,18 +244,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : BRUSA_PON_SIG_Pin HVIL_MCU_OUT_Pin HV_LED_Pin */
+  GPIO_InitStruct.Pin = BRUSA_PON_SIG_Pin|HVIL_MCU_OUT_Pin|HV_LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   /*Configure GPIO pin : BRUSA_EN_IN_Pin */
   GPIO_InitStruct.Pin = BRUSA_EN_IN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BRUSA_EN_IN_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : BRUSA_PON_Pin HVIL_MCU_OUT_Pin HV_LED_Pin */
-  GPIO_InitStruct.Pin = BRUSA_PON_Pin|HVIL_MCU_OUT_Pin|HV_LED_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : HVIL_MCU_IN_Pin */
   GPIO_InitStruct.Pin = HVIL_MCU_IN_Pin;
@@ -249,33 +268,20 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void  Pre_Charge_Sequence(void)
-{
-  HAL_GPIO_WritePin(GPIOC, MCU_PCC_Pin, 1);
-  for (int delay = 0; delay < 4; delay++)
-  {
-    HAL_GPIO_TogglePin(GPIOB, HV_LED_Pin);
-    HAL_Delay(1000);
-  }
-  HAL_GPIO_WritePin(GPIOC, MCU_PCC_Pin, 0);
-  HAL_GPIO_WritePin(GPIOC, MCU_MC_Pin, 1);
-  HAL_GPIO_WritePin(GPIOB, HV_LED_Pin, 1);
-  Charging_Sequence();
+void setOutputPins(
+		  uint8_t BRUSA_PON_SIG_State,
+		  uint8_t HVIL_MCU_OUT_State,
+		  uint8_t FANS_SIG_State,
+		  uint8_t MCU_PCC_State,
+		  uint8_t MCU_MC_State,
+		  uint8_t HV_LED_State) {
+    HAL_GPIO_WritePin(GPIOB, BRUSA_PON_SIG_Pin, BRUSA_PON_SIG_State);
+    HAL_GPIO_WritePin(GPIOB, HVIL_MCU_OUT_Pin, HVIL_MCU_OUT_State);
+    HAL_GPIO_WritePin(GPIOC, FANS_SIG_Pin, FANS_SIG_State);
+    HAL_GPIO_WritePin(GPIOC, MCU_PCC_Pin, MCU_PCC_State);
+    HAL_GPIO_WritePin(GPIOC, MCU_MC_Pin, MCU_MC_State);
+    HAL_GPIO_WritePin(GPIOB, HV_LED_Pin, HV_LED_State);
 }
-
-void Charging_Sequence(void)
-{
-  if(HAL_GPIO_ReadPin(BRUSA_EN_IN_GPIO_Port, BRUSA_EN_IN_Pin)) {
-	  HAL_GPIO_WritePin(GPIOB, BRUSA_PON_Pin, 1);
-	  Fan_Control();
-  }
-}
-
-void Fan_Control(void) {
-//	For now just toggle fans until can is fully added
-	HAL_GPIO_TogglePin(GPIOC, FANS_SIG_Pin);
-}
-
 /* USER CODE END 4 */
 
 /**
