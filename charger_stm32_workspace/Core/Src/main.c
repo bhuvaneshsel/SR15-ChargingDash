@@ -42,6 +42,12 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
 
+struct CANMessage {
+	CAN_TxHeaderTypeDef TxHeader;
+	uint32_t TxMailbox;
+	uint8_t data[8];
+};
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -50,6 +56,12 @@ CAN_HandleTypeDef hcan1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
+HAL_StatusTypeDef CAN_Start(void);
+HAL_StatusTypeDef CAN_Activate(void);
+void CAN_SettingsInit(struct CANMessage *ptr);
+HAL_StatusTypeDef CAN_Send(struct CANMessage *ptr);
+void CAN_Send_Test(struct CANMessage *ptr);
+HAL_StatusTypeDef CAN_Send_Simple(void);
 /* USER CODE BEGIN PFP */
 void setOutputPins(
 		uint8_t BRUSA_PON_SIG_State,
@@ -97,6 +109,10 @@ int main(void)
   /* USER CODE BEGIN 2 */
   	  int pre_charge_occured = 0;
   	  setOutputPins(0, 0, 0, 0, 0, 0);
+
+  struct CANMessage message;
+  CAN_SettingsInit(&message);
+  CAN_Send_Test(&message);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -206,6 +222,67 @@ static void MX_CAN1_Init(void)
   /* USER CODE BEGIN CAN1_Init 2 */
 
   /* USER CODE END CAN1_Init 2 */
+
+}
+
+HAL_StatusTypeDef CAN_Start() {
+	return HAL_CAN_Start(&hcan1);
+}
+
+HAL_StatusTypeDef CAN_Activate() {
+	return HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
+
+void CAN_SettingsInit(struct CANMessage *ptr) {
+	CAN_Start();
+	CAN_Activate();
+	ptr->TxHeader.IDE = CAN_ID_STD;
+	ptr->TxHeader.StdId = 0x00;
+	ptr->TxHeader.RTR = CAN_RTR_DATA;
+	ptr->TxHeader.DLC = 8;
+}
+
+
+HAL_StatusTypeDef CAN_Send(struct CANMessage *ptr) {
+	return HAL_CAN_AddTxMessage(&hcan1, &ptr->TxHeader, ptr->data, &ptr->TxMailbox);
+
+}
+
+void CAN_Send_Test(struct CANMessage *ptr) {
+
+
+	uint16_t CAN_ID = 0x100; /* I made up a random number for the CAN_ID. Should it be something specific?*/
+	ptr->TxHeader.StdId = CAN_ID; /* sets CAN ID in TxHeader. TxHeader is configured in CAN_SettingsInit() */
+
+
+	ptr->data[0] = 0x2A; /* This is the CAN message that will be sent*/
+	ptr->data[1] = 0x12;
+	ptr->data[2] = 0x5B;
+	ptr->data[3] = 0x77;
+	ptr->data[4] = 0x6C;
+	ptr->data[5] = 0x89;
+	ptr->data[6] = 0x1D;
+	ptr->data[7] = 0x3F;
+
+	CAN_Send(ptr);
+
+}
+
+/* Simpler function that handles all parts of sending the message in one function */
+HAL_StatusTypeDef CAN_Send_Simple() {
+	CAN_TxHeaderTypeDef TxHeaderSimple;
+	TxHeaderSimple.DLC = 8;
+	TxHeaderSimple.StdId = 0x15A;
+	TxHeaderSimple.IDE = CAN_ID_STD;
+	TxHeaderSimple.RTR = CAN_RTR_DATA;
+
+
+
+	uint8_t data[8] = {0x2a, 0x12, 0x5B, 0x77, 0x6C, 0x89, 0x1D, 0x3F};
+
+	uint32_t TxMailbox;
+
+	return HAL_CAN_AddTxMessage(&hcan1, &TxHeaderSimple, data, &TxMailbox);
 
 }
 
