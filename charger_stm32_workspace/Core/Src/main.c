@@ -251,20 +251,45 @@ HAL_StatusTypeDef CAN_Send(struct CANMessage *ptr) {
 void CAN_Send_Test(struct CANMessage *ptr) {
 
 
+
+
 	uint16_t CAN_ID = 0x100; /* I made up a random number for the CAN_ID. Should it be something specific?*/
 	ptr->TxHeader.StdId = CAN_ID; /* sets CAN ID in TxHeader. TxHeader is configured in CAN_SettingsInit() */
 
+	uint8_t message1[] = { 0x2A, 0x12, 0x5B, 0x77, 0x6C, 0x89, 0x1D, 0x3F };
+	uint8_t message2[] = { 0x2A, 0x12, 0x5B, 0x77, 0x6C, 0x89, 0x1D, 0x3F };
+	uint8_t message3[] = { 0x2A, 0x12, 0x5B, 0x77, 0x6C, 0x89, 0x1D, 0x3F };
 
-	ptr->data[0] = 0x2A; /* This is the CAN message that will be sent*/
-	ptr->data[1] = 0x12;
-	ptr->data[2] = 0x5B;
-	ptr->data[3] = 0x77;
-	ptr->data[4] = 0x6C;
-	ptr->data[5] = 0x89;
-	ptr->data[6] = 0x1D;
-	ptr->data[7] = 0x3F;
+
+	for (int i = 0; i < 8; i++) {
+		ptr->data[i] = message1[i];
+	}
+	CAN_Send(ptr);
+	HAL_Delay(1000);
+
+	for (int i = 0; i < 8; i++) {
+		ptr->data[i] = message2[i];
+	}
 
 	CAN_Send(ptr);
+	HAL_Delay(1000);
+
+	for (int i = 0; i < 8; i++) {
+		ptr->data[i] = message3[i];
+	}
+
+
+	while(1) {
+		CAN_Send(ptr);
+		HAL_Delay(1000);
+	}
+
+
+
+
+
+
+
 
 }
 
